@@ -14,11 +14,10 @@ import com.sun.jna.platform.win32.WinDef;
 
 public class GameAutomation {
 
-    /*static {
-        // 使用相对路径加载 OpenCV 本地库
-        String libPath = Paths.get("libs", "opencv_java490.dll").toAbsolutePath().toString();
-        System.load(libPath);
-    }*/
+    static {
+        System.loadLibrary(Core.NATIVE_LIBRARY_NAME);
+    }
+
 
     public static void main(String[] args) throws Exception {
         // 获取窗口句柄和截图路径
@@ -26,7 +25,7 @@ public class GameAutomation {
         String screenImgPath = CaptureUtils.captureWindow(handle);
 
         // 模板匹配
-        String templateImgPath = "E:\\yunpu\\shenwu\\play\\imgGallery\\1719394329126.jpg"; // 模板图像路径
+        String templateImgPath = "E:\\code\\shenwu\\Snipaste_2024-06-26_23-44-01.png"; // 模板图像路径
         Point matchLocation = findImageOnScreen(screenImgPath, templateImgPath);
 
         if (matchLocation != null) {
