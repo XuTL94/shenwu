@@ -2,22 +2,29 @@ package com.game.play.config;
 
 import com.game.play.utils.CaptureUtils;
 import com.game.play.utils.WindowsUtils;
+import lombok.extern.slf4j.Slf4j;
 import org.opencv.core.*;
 import org.opencv.core.Point;
 import org.opencv.imgcodecs.Imgcodecs;
 import org.opencv.imgproc.Imgproc;
-import java.awt.*;
-import java.awt.event.InputEvent;
-import java.nio.file.Paths;
+
+import java.io.File;
 
 import com.sun.jna.platform.win32.WinDef;
+import com.sun.jna.platform.win32.User32;
 
+@Slf4j
 public class GameAutomation {
+
+    static String imgGalleryDir = System.getProperty("user.dir") + File.separator + "imgGallery" + File.separator;
 
     static {
         System.loadLibrary(Core.NATIVE_LIBRARY_NAME);
     }
 
+    // 定义鼠标点击事件常量
+    private static final int WM_LBUTTONDOWN = 0x0201;
+    private static final int WM_LBUTTONUP = 0x0202;
 
     public static void main(String[] args) throws Exception {
         // 获取窗口句柄和截图路径
@@ -25,24 +32,26 @@ public class GameAutomation {
         String screenImgPath = CaptureUtils.captureWindow(handle);
 
         // 模板匹配
-        String templateImgPath = "E:\\code\\shenwu\\Snipaste_2024-06-26_23-44-01.png"; // 模板图像路径
+        String templateImgPath = imgGalleryDir + "23232.png"; // 模板图像路径
         Point matchLocation = findImageOnScreen(screenImgPath, templateImgPath);
 
         if (matchLocation != null) {
-            System.out.println("模板匹配成功，位置：" + matchLocation);
-            // 模拟点击
-            Robot robot = new Robot();
-            robot.mouseMove((int) matchLocation.x, (int) matchLocation.y);
-            robot.mousePress(InputEvent.BUTTON1_DOWN_MASK);
-            robot.mouseRelease(InputEvent.BUTTON1_DOWN_MASK);
+            log.info("模板匹配成功，位置：{}", matchLocation);
+            // 发送鼠标点击消息到窗口句柄
+            sendMouseClick(handle, (int) matchLocation.x, (int) matchLocation.y);
         } else {
-            System.out.println("未找到模板匹配");
+            log.info("未找到模板匹配");
         }
     }
 
     public static Point findImageOnScreen(String screenImgPath, String templateImgPath) {
         Mat screen = Imgcodecs.imread(screenImgPath);
         Mat template = Imgcodecs.imread(templateImgPath);
+
+        if (screen.empty() || template.empty()) {
+            log.error("无法读取屏幕截图或模板图像");
+            return null;
+        }
 
         int resultCols = screen.cols() - template.cols() + 1;
         int resultRows = screen.rows() - template.rows() + 1;
@@ -51,10 +60,21 @@ public class GameAutomation {
         Imgproc.matchTemplate(screen, template, result, Imgproc.TM_CCOEFF_NORMED);
         Core.MinMaxLocResult mmr = Core.minMaxLoc(result);
 
+        log.info("匹配最大值：{}, 位置：{}", mmr.maxVal, mmr.maxLoc);
+
         if (mmr.maxVal >= 0.8) { // 设定匹配阈值
+            // 获取模板匹配位置，返回中心点坐标
             Point matchPoint = new Point(mmr.maxLoc.x + template.width() / 2, mmr.maxLoc.y + template.height() / 2);
+            log.info("匹配点：{}", matchPoint);
             return matchPoint;
         }
         return null;
+    }
+
+    private static void sendMouseClick(WinDef.HWND hWnd, int x, int y) {
+        int lParam = (y << 16) | (x & 0xFFFF);
+        log.info("发送鼠标点击到窗口，坐标：({}, {})，lParam：{}", x, y, lParam);
+        User32.INSTANCE.PostMessage(hWnd, WM_LBUTTONDOWN, new WinDef.WPARAM(1), new WinDef.LPARAM(lParam));
+        User32.INSTANCE.PostMessage(hWnd, WM_LBUTTONUP, new WinDef.WPARAM(1), new WinDef.LPARAM(lParam));
     }
 }

@@ -98,7 +98,6 @@ compose.desktop {
 
 tasks.withType<JavaExec> {
     systemProperty("file.encoding", "UTF-8")
-    systemProperty("java.library.path", "E:\\opencv\\build\\java\\x64")
 }
 
 tasks.register<JavaExec>("runSpringBoot") {
@@ -106,7 +105,6 @@ tasks.register<JavaExec>("runSpringBoot") {
     description = "Run the Spring Boot application"
     classpath = sourceSets["main"].runtimeClasspath
     mainClass.set("com.xtl.ebusiness.AutomationApplication")
-    systemProperty("java.library.path", "E:\\opencv\\build\\java\\x64")
 }
 
 springBoot {

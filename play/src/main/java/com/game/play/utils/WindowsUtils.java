@@ -40,7 +40,13 @@ public class WindowsUtils {
             user32.GetClassName(hWnd, classNameChars, 512);
             String className = Native.toString(classNameChars);
 
-            log.info("找到句柄: {}, 窗口标题: {}, 类名: {}", hWnd, windowText, className);
+            // 获取窗口大小
+            WinDef.RECT rect = new WinDef.RECT();
+            user32.GetWindowRect(hWnd, rect);
+            int width = rect.right - rect.left;
+            int height = rect.bottom - rect.top;
+
+            log.info("找到句柄: {}  ,  窗口标题: {}   ,   类名: {}   ,   窗口大小: {}x{}", hWnd, windowText, className, width, height);
         }
         return hWnd;
     }
@@ -71,7 +77,13 @@ public class WindowsUtils {
                     return true;
                 }
                 hwndList.add(hWnd);
-                log.info("句柄: {}, 窗口标题: {}, 类名: {}", hWnd, windowText, className);
+
+                // 获取窗口大小
+                WinDef.RECT rect = new WinDef.RECT();
+                user32.GetWindowRect(hWnd, rect);
+                int width = rect.right - rect.left;
+                int height = rect.bottom - rect.top;
+                log.info("找到句柄: {}  ,  窗口标题: {}   ,   类名: {}   ,   窗口大小: {}x{}", hWnd, windowText, className, width, height);
             }
             return true;
         }, null);
