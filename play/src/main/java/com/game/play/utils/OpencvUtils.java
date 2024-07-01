@@ -5,10 +5,48 @@ import org.opencv.core.*;
 import org.opencv.imgcodecs.Imgcodecs;
 import org.opencv.imgproc.Imgproc;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @Slf4j
 public class OpencvUtils {
+
+    /**
+     * 匹配获取坐标（单目标），不计算离中心最近
+     * region为空，则不需要指定区域匹配
+     */
+    public static Point findImgXY(String screenImgPath, String targetImgPath, double threshold, Rect region) {
+        return findNearestImageXY(screenImgPath, List.of(targetImgPath), threshold, region, false);
+    }
+
+    /**
+     * 匹配获取坐标（多目标），不计算离中心最近
+     */
+    public static Point findImgsXY(String screenImgPath, List<String> targetImgPaths, double threshold, Rect region) {
+        return findNearestImageXY(screenImgPath, targetImgPaths, threshold, region, false);
+    }
+
+    /**
+     * 匹配获取所有符合条件的坐标（多目标）
+     * @param screenImgPath 句柄窗口截图
+     * @param targetImgPaths 目标图集合
+     * @param threshold 匹配阈值  一般大于0.8
+     * @return 所有匹配点的集合
+     */
+    public static List<Point> findAllOneImgsXY(String screenImgPath, List<String> targetImgPaths, double threshold) {
+        return findAllOneImagesXY(screenImgPath, targetImgPaths, threshold, null);
+    }
+
+    /**
+     * 匹配获取所有符合条件的坐标（多目标）
+     * @param screenImgPath 句柄窗口截图
+     * @param targetImgPaths 目标图集合
+     * @param threshold 匹配阈值  一般大于0.8
+     * @return 所有匹配点的集合
+     */
+    public static List<Point> findAllImgsXY(String screenImgPath, List<String> targetImgPaths, double threshold) {
+        return findAllImagesXY(screenImgPath, targetImgPaths, threshold, null);
+    }
 
     /**
      * 匹配获取离中心最近的坐标（单目标）
@@ -35,14 +73,6 @@ public class OpencvUtils {
     public static Point findImgNearsXYInRegion(String screenImgPath, List<String> targetImgPaths, double threshold, Rect region) {
         return findNearestImageXY(screenImgPath, targetImgPaths, threshold, region, true);
     }
-
-    /**
-     * 匹配获取坐标（多目标），不计算离中心最近
-     */
-    public static Point findImgXY(String screenImgPath, List<String> targetImgPaths, double threshold, Rect region) {
-        return findNearestImageXY(screenImgPath, targetImgPaths, threshold, region, false);
-    }
-
 
     /**
      * 匹配获取离中心最近的怪物图片坐标，忽略头上有战斗图标的怪物
@@ -105,6 +135,18 @@ public class OpencvUtils {
 
         return nearestPoint;
     }
+
+    /**
+     * 匹配获取所有符合条件的坐标（单目标）
+     * @param screenImgPath 句柄窗口截图
+     * @param targetImgPath 目标图
+     * @param threshold 匹配阈值  一般大于0.8
+     * @return 所有匹配点的集合
+     */
+    public static List<Point> findAllImgXY(String screenImgPath, String targetImgPath, double threshold) {
+        return findAllImagesXY(screenImgPath, List.of(targetImgPath), threshold, null);
+    }
+
 
     private static Point findNearestImageXY(String screenImgPath, List<String> targetImgPaths, double threshold, Rect region, boolean findNearest) {
         Mat screen = Imgcodecs.imread(screenImgPath);
@@ -170,6 +212,126 @@ public class OpencvUtils {
         return nearestPoint;
     }
 
+    private static List<Point> findAllImagesXY(String screenImgPath, List<String> targetImgPaths, double threshold, Rect region) {
+        Mat screen = Imgcodecs.imread(screenImgPath);
+
+        if (screen.empty()) {
+            log.error("无法读取屏幕截图");
+            return null;
+        }
+
+        Rect adjustedRegion = region != null ? adjustRegion(screen, region) : new Rect(0, 0, screen.width(), screen.height());
+        Mat screenRegion = new Mat(screen, adjustedRegion);
+
+        List<Point> points = new ArrayList<>();
+
+        try {
+            for (String targetImgPath : targetImgPaths) {
+                Mat target = Imgcodecs.imread(targetImgPath);
+
+                if (target.empty()) {
+                    log.error("无法读取目标图像: {}", targetImgPath);
+                    continue;
+                }
+
+                Mat result = new Mat(screenRegion.rows() - target.rows() + 1, screenRegion.cols() - target.cols() + 1, CvType.CV_32FC1);
+                Imgproc.matchTemplate(screenRegion, target, result, Imgproc.TM_CCOEFF_NORMED);
+
+                while (true) {
+                    Core.MinMaxLocResult mmr = Core.minMaxLoc(result);
+                    log.info("匹配最大值：{}, 起始点位置：{}", mmr.maxVal, mmr.maxLoc);
+
+                    if (mmr.maxVal >= threshold) {
+                        Point matchPoint = new Point(mmr.maxLoc.x + (double) target.width() / 2, mmr.maxLoc.y + (double) target.height() / 2);
+                        log.info("匹配点：{}", matchPoint);
+                        points.add(new Point(matchPoint.x + adjustedRegion.x, matchPoint.y + adjustedRegion.y));
+
+                        // 将匹配区域置零以避免重复匹配
+                        Imgproc.rectangle(result, mmr.maxLoc,
+                                new Point(mmr.maxLoc.x + target.cols(), mmr.maxLoc.y + target.rows()),
+                                new Scalar(0), -1);
+                    } else {
+                        break;
+                    }
+                }
+            }
+
+        } catch (Exception e) {
+            log.error("模板匹配过程中出错", e);
+            return null;
+        }
+
+        return points;
+    }
+
+    /**
+     * 每张图片匹配到即跳过下一张继续匹配
+     * @param screenImgPath
+     * @param targetImgPaths
+     * @param threshold
+     * @param region
+     * @return
+     */
+    public static List<Point> findAllOneImagesXY(String screenImgPath, List<String> targetImgPaths, double threshold, Rect region) {
+        Mat screen = Imgcodecs.imread(screenImgPath);
+
+        if (screen.empty()) {
+            log.error("无法读取屏幕截图");
+            return null;
+        }
+
+        Rect adjustedRegion = region != null ? adjustRegion(screen, region) : new Rect(0, 0, screen.width(), screen.height());
+        Mat screenRegion = new Mat(screen, adjustedRegion);
+
+        List<Point> points = new ArrayList<>();
+
+        try {
+            for (String targetImgPath : targetImgPaths) {
+                Mat target = Imgcodecs.imread(targetImgPath);
+
+                if (target.empty()) {
+                    log.error("无法读取目标图像: {}", targetImgPath);
+                    continue;
+                }
+
+                Mat result = new Mat(screenRegion.rows() - target.rows() + 1, screenRegion.cols() - target.cols() + 1, CvType.CV_32FC1);
+                Imgproc.matchTemplate(screenRegion, target, result, Imgproc.TM_CCOEFF_NORMED);
+
+                boolean foundMatch = false;
+                while (true) {
+                    Core.MinMaxLocResult mmr = Core.minMaxLoc(result);
+                    log.info("匹配最大值：{}, 起始点位置：{}", mmr.maxVal, mmr.maxLoc);
+                    if (mmr.maxVal >= threshold) {
+                        Point matchPoint = new Point(mmr.maxLoc.x + (double) target.width() / 2, mmr.maxLoc.y + (double) target.height() / 2);
+                        points.add(new Point(matchPoint.x + adjustedRegion.x, matchPoint.y + adjustedRegion.y));
+                        foundMatch = true;
+
+                        // 将匹配区域置零以避免重复匹配
+                        Imgproc.rectangle(result, mmr.maxLoc,
+                                new Point(mmr.maxLoc.x + target.cols(), mmr.maxLoc.y + target.rows()),
+                                new Scalar(0), -1);
+
+                        break;
+                    } else {
+                        break;
+                    }
+                }
+
+                // 如果找到匹配，跳过当前目标图像
+                if (foundMatch) {
+                    continue;
+                }
+            }
+
+        } catch (Exception e) {
+            log.error("模板匹配过程中出错", e);
+            return null;
+        }
+
+        return points;
+    }
+
+
     private static Rect adjustRegion(Mat screen, Rect region) {
         return new Rect(
                 Math.max(0, region.x),
@@ -211,5 +373,45 @@ public class OpencvUtils {
 
         log.info("战斗图标匹配最大值：{}, 位置：{}", mmr.maxVal, mmr.maxLoc);
         return mmr.maxVal >= threshold;
+    }
+
+    /**
+     * 在指定矩形区域内查找指定颜色的像素坐标
+     * @param screenImgPath 原始屏幕图片路径
+     * @param startX 矩形区域左上角 x 坐标
+     * @param startY 矩形区域左上角 y 坐标
+     * @param width 矩形区域宽度
+     * @param height 矩形区域高度
+     * @param color 指定的颜色，以Scalar形式表示（BGR格式）
+     * @return 找到的第一个匹配颜色的像素绝对坐标，未找到返回null
+     */
+    public static Point findColorCoordinate(String screenImgPath, int startX, int startY, int width, int height, Scalar color) {
+        Mat screen = Imgcodecs.imread(screenImgPath);
+        if (screen.empty()) {
+            System.err.println("无法读取屏幕截图：" + screenImgPath);
+            return null;
+        }
+
+        // 确保矩形区域不超出屏幕边界
+        int endX = Math.min(startX + width, screen.cols());
+        int endY = Math.min(startY + height, screen.rows());
+
+        // 提取矩形区域
+        Mat roi = new Mat(screen, new Rect(startX, startY, endX - startX, endY - startY));
+
+        // 创建掩模并在掩模上执行颜色匹配
+        Mat mask = new Mat();
+        Core.inRange(roi, color, color, mask);
+
+        // 查找第一个匹配颜色的像素坐标
+        for (int y = 0; y < mask.rows(); y++) {
+            for (int x = 0; x < mask.cols(); x++) {
+                if (mask.get(y, x)[0] == 255) { // 找到匹配的颜色像素
+                    return new Point(startX + x, startY + y); // 返回绝对坐标
+                }
+            }
+        }
+
+        return null; // 未找到匹配的颜色像素
     }
 }

@@ -27,21 +27,23 @@ public class GameAutomation {
     private static final int WM_LBUTTONUP = 0x0202;
 
     public static void main(String[] args) throws Exception {
-        // 获取窗口句柄和截图路径
+       /* // 获取窗口句柄和截图路径
         WinDef.HWND handle = WindowsUtils.getWindowHandle("战盟", "");
         String screenImgPath = CaptureUtils.captureWindow(handle);
 
         // 模板匹配
-        String templateImgPath = imgGalleryDir + "23232.png"; // 模板图像路径
+        String templateImgPath = imgGalleryDir + "23232.png"; // 模板图像路径*/
+        String screenImgPath = "E:\\code\\yunpu\\shenwu\\temp\\a.png";
+        String templateImgPath = "E:\\code\\yunpu\\shenwu\\temp\\biaoji\\result.png";
         Point matchLocation = findImageOnScreen(screenImgPath, templateImgPath);
 
-        if (matchLocation != null) {
+        /*if (matchLocation != null) {
             log.info("模板匹配成功，位置：{}", matchLocation);
             // 发送鼠标点击消息到窗口句柄
             sendMouseClick(handle, (int) matchLocation.x, (int) matchLocation.y);
         } else {
             log.info("未找到模板匹配");
-        }
+        }*/
     }
 
     public static Point findImageOnScreen(String screenImgPath, String templateImgPath) {

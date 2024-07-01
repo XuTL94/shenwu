@@ -75,7 +75,7 @@ public class CaptureUtils {
             String tempImgName = tempDir + File.separator + IdUtil.fastUUID() + ".png";
             File outputfile = new File(tempImgName);
             ImageIO.write(image, "png", outputfile);
-            log.info("截图已保存到: {}", tempImgName);
+            //log.info("截图已保存到: {}", tempImgName);
             return tempImgName;
         } catch (IOException e) {
             log.error("捕捉图像失败", e);
