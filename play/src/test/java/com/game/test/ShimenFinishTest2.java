@@ -1,8 +1,9 @@
 package com.game.test;
 
 import cn.hutool.core.util.ObjectUtil;
+import com.game.core.exception.BusinessException;
 import com.game.play.utils.CaptureUtils;
-import com.game.play.utils.OpencvUtils2;
+import com.game.play.utils.OpencvUtils;
 import com.game.play.utils.ShenwuUtils;
 import com.game.play.utils.WindowsUtils;
 import com.sun.jna.platform.win32.WinDef;
@@ -74,11 +75,8 @@ public class ShimenFinishTest2 {
         WindowsUtils.sendRightMouseClick(hwnd, 170, 260, 3);
     }
 
-    /**
-     * 完成师门任务
-     *
-     * @throws InterruptedException
-     */
+
+    // 完成师门任务
     @Test
     void finishSM() throws InterruptedException {
 
@@ -88,175 +86,273 @@ public class ShimenFinishTest2 {
             return;
         }
 
-        // 循环处理任务，直到没有任务类型图标匹配
-        while (ObjectUtil.isNotEmpty(OpencvUtils2.findAllOneImgsXY(CaptureUtils.captureWindow(hwnd), smTypeImgPathList, 0.8))) {
+        // 判断是否已接收师门任务
+        while (ObjectUtil.isNotEmpty(OpencvUtils2.findAllOneImgsXY(CaptureUtils.captureWindow(hwnd), smTypeIconList, 0.8))) {
             log.info("师门任务进行中...");
             boolean finishOneFlag = false;
+            // 先判断是否是物质收集
+            finishOneFlag = ToDoSMCollectionTest(hwnd);
 
-            // 处理物质收集任务
-            if (handleTask(hwnd, smDoList.get("toDoSMCollectionPath"), this::handleSMCollection)) {
-                finishOneFlag = true;
+            // 如果不是物质收集则继续判断是否是购买宠物
+            if (!finishOneFlag) {
+                finishOneFlag = ToDoSMChongwu(hwnd);
             }
-            // 处理宠物购买任务
-            if (!finishOneFlag && handleTask(hwnd, smDoList.get("toDoSMchongwuPath"), this::handleSMChongwu)) {
-                finishOneFlag = true;
-            }
-            // 处理灵虚裂痕任务
-            if (!finishOneFlag && handleTask(hwnd, smDoList.get("toDoSMLingxuPath"), this::completeTask)) {
-                finishOneFlag = true;
-            }
-            // 处理挑战首席任务
-            if (!finishOneFlag && handleTask(hwnd, smDoList.get("toDoSMShouxiPath"), this::completeTask)) {
-                finishOneFlag = true;
-            }
-            // 处理援助同门任务
-            if (!finishOneFlag && handleTask(hwnd, smDoList.get("toDoSMYuanzuPath"), this::completeTask)) {
-                finishOneFlag = true;
+            // 如果不是物质收集则继续判断是否是灵虚裂痕
+            if (!finishOneFlag) {
+                finishOneFlag = ToDoSMLingxu(hwnd);
             }
 
             if (!finishOneFlag) {
-                log.warn("未能找到任何匹配的师门任务图标");
-                break;
+                finishOneFlag = ToDoSMShouxi(hwnd);
+            }
+
+            if (!finishOneFlag) {
+                finishOneFlag = ToDoSMYuanzu(hwnd);
             }
         }
         log.info("师门任务已完成");
     }
 
-    /**
-     * 通用任务处理方法
-     */
-    private boolean handleTask(WinDef.HWND hwnd, String taskIconPath, TaskHandler taskHandler) throws InterruptedException {
-        Point point = OpencvUtils2.findImgXY(CaptureUtils.captureWindow(hwnd), taskIconPath, 0.8, null);
-        if (point == null) {
+
+    // 师门类型  物质收集
+    static boolean ToDoSMCollectionTest(WinDef.HWND hwnd) throws InterruptedException {
+
+
+        Point point = OpencvUtils.findImageXY(CaptureUtils.captureWindow(hwnd), smDoList.get("toDoSMCollectionPath"), 0.8, null);
+
+        if (ObjectUtil.isEmpty(point)) {
+            log.info("未找到师门任务：收集物质");
             return false;
         }
-        log.info("师门任务执行中：{}", taskIconPath);
-        return taskHandler.handle(hwnd);
-    }
+        log.info("师门任务执行中：收集物质");
 
-    /**
-     * 处理物质收集任务
-     */
-    private boolean handleSMCollection(WinDef.HWND hwnd) throws InterruptedException {
-        while (true) {
-            Point smFinishPoint = OpencvUtils2.findImgXY(CaptureUtils.captureWindow(hwnd), smDoList.get("smFinishReplyIconPath"), 0.8, null);
-            if (ObjectUtil.isNotEmpty(smFinishPoint)) {
-                Point replyPoint = OpencvUtils2.findColorCoordinate(CaptureUtils.captureWindow(hwnd), (int) smFinishPoint.x, (int) (smFinishPoint.y + 5), 150, 15, new Scalar(254, 254, 0));
-                if (ObjectUtil.isNotEmpty(replyPoint)) {
-                    WindowsUtils.sendMouseClick(hwnd, (int) replyPoint.x, (int) replyPoint.y, 1);
-                    return waitForSubmissionCompletion(hwnd);
-                }
-            } else {
-                handleCollectionPurchase(hwnd);
-                return false;
-            }
-        }
-    }
 
-    /**
-     * 处理物质购买
-     */
-    private void handleCollectionPurchase(WinDef.HWND hwnd) {
-        WindowsUtils.sendMouseClick(hwnd, 22, 307, 1); // 打开交易中心
-        WindowsUtils.sendMouseClick(hwnd, 566, 620, 3); // 点击购买
-        WindowsUtils.sendRightMouseClick(hwnd, 170, 260, 1); // 关闭弹窗
-    }
-
-    /**
-     * 等待提交完成
-     */
-    private boolean waitForSubmissionCompletion(WinDef.HWND hwnd) throws InterruptedException {
-        int elapsedTime = 0;
-        int checkInterval = 10000; // 每10秒检测一次
+        // 每10s检测是否已完成提交：弹窗关闭标识，如果5分钟没结束，则默认结束
+        int executionTime = 0;
+        int checkInterval = 1000 * 10; // 每10秒检测一次
         int timeout = 1000 * 60 * 5; // 5分钟超时
 
-        while (elapsedTime < timeout) {
+        while (executionTime < timeout) {
+
+            // 是否已完成  回复师门
+            Point smFinishPoint = OpencvUtils.findImageXY(CaptureUtils.captureWindow(hwnd), smDoList.get("smFinishReplyIconPath"), 0.8, null);
+            // 未完成购买，先进行购买
+            if(ObjectUtil.isEmpty(smFinishPoint)){
+                // 打开交易中心 22 307
+                WindowsUtils.sendMouseClick(hwnd, 22, 307, 1);
+                // 点击购买  坐标
+                WindowsUtils.sendMouseClick(hwnd, 566, 620, 3);
+                // 退出弹窗
+                WindowsUtils.sendKeyEvent(hwnd, 0x1B);
+            }
+            // 已完成购买，寻路提交
+            else {
+                // 获取师门回复寻路坐标
+                Point replyPoint = OpencvUtils.findColorCoordinate(CaptureUtils.captureWindow(hwnd), (int) smFinishPoint.x, (int) (smFinishPoint.y + 5), 150, 15, new Scalar(254, 254, 0));
+                if (ObjectUtil.isNotEmpty(replyPoint)) {
+                    WindowsUtils.sendMouseClick(hwnd, (int) replyPoint.x, (int) (replyPoint.y), 1);
+                    // 是否需要手动提交物质
+                    Point commitTaskIconPoint = OpencvUtils.findImageXY(CaptureUtils.captureWindow(hwnd), commitTaskIconPath, 0.8, null);
+                    if (ObjectUtil.isNotEmpty(commitTaskIconPoint)) {
+                        log.info("提交任务坐标，{} {}", commitTaskIconPoint.x, commitTaskIconPoint.y);
+                        WindowsUtils.sendMouseClick(hwnd, (int) commitTaskIconPoint.x, (int) commitTaskIconPoint.y, 1);
+
+                        // 是否需要再次确认收到提交
+                        Point commitCollectSMPoint = OpencvUtils.findImageXY(CaptureUtils.captureWindow(hwnd), commitCollectSMPath, 0.8, null);
+                        if (ObjectUtil.isNotEmpty(commitCollectSMPoint)) {
+                            WindowsUtils.sendMouseClick(hwnd, (int) commitCollectSMPoint.x, (int) commitCollectSMPoint.y, 1);
+                        }
+
+                        Point givePopUpsPoint = OpencvUtils.findImageXY(CaptureUtils.captureWindow(hwnd), givePopUpsIconPath, 0.8, null);
+                        if (ObjectUtil.isNotEmpty(givePopUpsPoint)) {
+                            List<Point> collectionPoints = OpencvUtils.findAllOneImagesXY(CaptureUtils.captureWindow(hwnd), giveCollectionList, 0.8);
+                            if (collectionPoints != null) {
+                                for (Point p : collectionPoints) {
+                                    WindowsUtils.sendMouseClick(hwnd, (int) p.x, (int) (p.y), 1);
+                                }
+                            }
+                            Point quedingIconPoint = OpencvUtils.findImageXY(CaptureUtils.captureWindow(hwnd), quedingIconPath, 0.8, null);
+                            // 点击确定提交物质
+                            WindowsUtils.sendMouseClick(hwnd, (int) quedingIconPoint.x, (int) quedingIconPoint.y, 1);
+
+                            Point endPoint = OpencvUtils.findImageXY(CaptureUtils.captureWindow(hwnd), popUpIconPath, 0.8, null);
+                            if (endPoint != null) {
+                                WindowsUtils.sendMouseClick(hwnd, (int) endPoint.x, (int) (endPoint.y), 1);
+                                isBattleEnded = true;
+                                finishFlag = false;
+                                log.info("物质已提交师门");
+                                break;
+                            }
+                            break;
+                        }
+                    } else {
+                        Point endPoint = OpencvUtils2.findImgXY(CaptureUtils.captureWindow(hwnd), popUpIconPath, 0.8, null);
+                        if (endPoint != null) {
+                            WindowsUtils.sendMouseClick(hwnd, (int) endPoint.x, (int) (endPoint.y), 1);
+                            isBattleEnded = true;
+                            finishFlag = false;
+                            log.info("物质已提交师门");
+                            break;
+                        }
+                    }
+                }
+            }
+
+
+            executionTime += checkInterval;
             TimeUnit.MILLISECONDS.sleep(checkInterval);
-            elapsedTime += checkInterval;
-
-            Point commitTaskIconPoint = OpencvUtils2.findImgXY(CaptureUtils.captureWindow(hwnd), smDoList.get("commitTaskIconPath"), 0.8, null);
-            if (ObjectUtil.isNotEmpty(commitTaskIconPoint)) {
-                WindowsUtils.sendMouseClick(hwnd, (int) commitTaskIconPoint.x, (int) commitTaskIconPoint.y, 1);
-                handleCollectionConfirmation(hwnd);
-                return true;
-            } else {
-                Point endPoint = OpencvUtils2.findImgXY(CaptureUtils.captureWindow(hwnd), smDoList.get("popUpIconPath"), 0.8, null);
-                if (endPoint != null) {
-                    WindowsUtils.sendMouseClick(hwnd, (int) endPoint.x, (int) endPoint.y, 1);
-                    return true;
-                }
-            }
-            log.info("物质未提交师门，已等待时间：" + (elapsedTime / 1000) + "秒");
         }
-        log.info("物质已提交师门，默认结束");
-        return false;
+
+        log.info("收集物质已提交师门，已等待时间：" + (executionTime / 1000) + "秒");
+
+
+        return true;
     }
 
-    /**
-     * 处理物质提交确认
-     */
-    private void handleCollectionConfirmation(WinDef.HWND hwnd) throws InterruptedException {
-        Point commitCollectSMPoint = OpencvUtils2.findImgXY(CaptureUtils.captureWindow(hwnd), smDoList.get("commitCollectSMPath"), 0.8, null);
-        if (ObjectUtil.isNotEmpty(commitCollectSMPoint)) {
-            WindowsUtils.sendMouseClick(hwnd, (int) commitCollectSMPoint.x, (int) commitCollectSMPoint.y, 1);
+
+    // 师门类型  宠物购买
+    static boolean ToDoSMChongwu(WinDef.HWND hwnd) throws InterruptedException {
+
+        Point point = OpencvUtils.findImageXY(CaptureUtils.captureWindow(hwnd), smDoList.get("toDoSMchongwuPath"), 0.8, null);
+
+        if (point == null) {
+            log.info("未找到师门任务：宠物购买");
+            return false;
         }
-
-        Point givePopUpsPoint = OpencvUtils2.findImgXY(CaptureUtils.captureWindow(hwnd), smDoList.get("givePopUpsIconPath"), 0.8, null);
-        if (ObjectUtil.isNotEmpty(givePopUpsPoint)) {
-            List<Point> collectionPoints = OpencvUtils2.findAllOneImgsXY(CaptureUtils.captureWindow(hwnd), giveWuziImgPathList, 0.8);
-            if (collectionPoints != null) {
-                for (Point p : collectionPoints) {
-                    WindowsUtils.sendMouseClick(hwnd, (int) p.x, (int) p.y, 1);
-                }
-            }
-            Point quedingIconPoint = OpencvUtils2.findImgXY(CaptureUtils.captureWindow(hwnd), smDoList.get("quedingIconPath"), 0.8, null);
-            WindowsUtils.sendMouseClick(hwnd, (int) quedingIconPoint.x, (int) quedingIconPoint.y, 1);
-
-            Point endPoint = OpencvUtils2.findImgXY(CaptureUtils.captureWindow(hwnd), smDoList.get("popUpIconPath"), 0.8, null);
-            if (endPoint != null) {
-                WindowsUtils.sendMouseClick(hwnd, (int) endPoint.x, (int) endPoint.y, 1);
-            }
-        }
-    }
-
-    /**
-     * 处理宠物购买任务
-     */
-    private boolean handleSMChongwu(WinDef.HWND hwnd) throws InterruptedException {
         log.info("师门任务执行中：宠物购买");
-        WindowsUtils.sendMouseClick(hwnd, 820, 60, 1); // 点击宠物头像位置
-        WindowsUtils.sendMouseClick(hwnd, 460, 350, 3); // 下拉最底下
-        WindowsUtils.sendMouseClick(hwnd, 350, 350, 1); // 点击获取更多宠物
-        WindowsUtils.sendMouseClick(hwnd, 700, 570, 1); // 点击信誉购买
-        return completeTask(hwnd);
+
+        // 每10s检测是否已完成提交：弹窗关闭标识，如果5分钟没结束，则默认结束
+        int executionTime = 0;
+        int checkInterval = 1000 * 10; // 每10秒检测一次
+        int timeout = 1000 * 60 * 5; // 5分钟超时
+
+        while (executionTime < timeout) {
+
+            // 是否已完成  回复师门
+            Point smFinishPoint = OpencvUtils.findImageXY(CaptureUtils.captureWindow(hwnd), smDoList.get("smFinishReplyIconPath"), 0.8, null);
+            // 未完成购买，先进行购买
+            if(ObjectUtil.isEmpty(smFinishPoint)){
+                // 购买宠物
+                // 点击宠物头像   820  60
+                WindowsUtils.sendMouseClick(hwnd, 820, 60, 1);
+                // 下拉最底下
+                WindowsUtils.sendMouseClick(hwnd, 460, 350, 3);
+                // 点击获取更多宠物
+                WindowsUtils.sendMouseClick(hwnd, 350, 350, 1);
+                // 点击信誉购买
+                WindowsUtils.sendMouseClick(hwnd, 700, 570, 1);
+                WindowsUtils.sendKeyEvent(hwnd, 0x1B);
+            }
+            // 已完成购买，寻路提交
+            else{
+                // 获取点击寻路坐标
+                Point replyPoint = OpencvUtils.findColorCoordinate(CaptureUtils.captureWindow(hwnd), (int) smFinishPoint.x, (int) (smFinishPoint.y + 5), 150, 15, new Scalar(254, 254, 0));
+                if (ObjectUtil.isNotEmpty(replyPoint)) {
+                    WindowsUtils.sendMouseClick(hwnd, (int) replyPoint.x, (int) (replyPoint.y), 1);
+                }
+            }
+
+            // 判断是否已完成
+            Point endPoint = OpencvUtils.findImageXY(CaptureUtils.captureWindow(hwnd), commonImgList.get("popUpIconPath"), 0.8, null);
+            if (ObjectUtil.isEmpty(endPoint)) {
+                WindowsUtils.sendKeyEvent(hwnd, 0x1B);
+                log.info("宠物已提交师门");
+                break;
+            }
+            executionTime += checkInterval;
+            TimeUnit.MILLISECONDS.sleep(checkInterval);
+        }
+
+        log.info("宠物已提交师门，已等待时间：" + (executionTime / 1000) + "秒");
+        return true;
+    }
+
+    // 师门类型  灵虚裂痕
+    static boolean ToDoSMLingxu(WinDef.HWND hwnd) throws InterruptedException {
+        Point point = OpencvUtils.findImageXY(CaptureUtils.captureWindow(hwnd), smDoList.get("toDoSMLingxuPath"), 0.8, null);
+
+        if (point == null) {
+            log.info("未找到师门任务：灵虚裂痕");
+            return false;
+        }
+        log.info("师门任务执行中：灵虚裂痕");
+        // 点击灵虚裂痕
+        WindowsUtils.sendMouseClick(hwnd, (int) point.x, (int) (point.y), 1);
+        completeTask(hwnd,true);
+
+        return true;
+    }
+
+    // 师门类型  挑战首席
+    static boolean ToDoSMShouxi(WinDef.HWND hwnd) throws InterruptedException {
+
+        Point point = OpencvUtils.findImageXY(CaptureUtils.captureWindow(hwnd), smDoList.get("toDoSMShouxiPath"), 0.8, null);
+
+        if (point == null) {
+            log.info("未找到师门任务：挑战首席");
+            return false;
+        }
+        log.info("师门任务执行中：挑战首席");
+
+        // 点击首席  寻路战斗
+        WindowsUtils.sendMouseClick(hwnd, (int) point.x, (int) (point.y), 1);
+        completeTask(hwnd,true);
+
+        return true;
+    }
+
+    // 师门类型  援助同门
+    static boolean ToDoSMYuanzu(WinDef.HWND hwnd) throws InterruptedException {
+
+        Point point = OpencvUtils.findImageXY(CaptureUtils.captureWindow(hwnd), smDoList.get("toDoSMYuanzuPath"), 0.8, null);
+        if (point == null) {
+            log.info("未找到师门任务：援助同门");
+            return false;
+        }
+        log.info("师门任务执行中：援助同门");
+
+        // 点击援助  寻路战斗
+        WindowsUtils.sendMouseClick(hwnd, (int) point.x, (int) (point.y), 1);
+        completeTask(hwnd,true);
+
+        return true;
     }
 
 
     /**
      * 任务是否已完成
+     * isFight： true战斗场景
      */
-    private boolean completeTask(WinDef.HWND hwnd) throws InterruptedException {
-        int elapsedTime = 0;
-        int checkInterval = 10000; // 每10秒检测一次
+    static private boolean completeTask(WinDef.HWND hwnd,boolean isFight) throws InterruptedException {
+
+        int executionTime = 0;
+        int checkInterval = 1000 * 10; // 每10秒检测一次
         int timeout = 1000 * 60 * 5; // 5分钟超时
 
-        while (elapsedTime < timeout) {
+        while (executionTime < timeout) {
             TimeUnit.MILLISECONDS.sleep(checkInterval);
-            elapsedTime += checkInterval;
-
-            Point endPoint = OpencvUtils2.findImgXY(CaptureUtils.captureWindow(hwnd), smDoList.get("popUpIconPath"), 0.8, null);
-            if (endPoint != null) {
-                Point zhandouIngPoint = OpencvUtils2.findImgXY(CaptureUtils.captureWindow(hwnd), smDoList.get("zhandouchangdiPath"), 0.8, null);
-                if (zhandouIngPoint == null) {
-                    //WindowsUtils.sendMouseClick(hwnd, (int) endPoint.x, (int) endPoint.y, 1);
-                    WindowsUtils.sendKeyEvent(hwnd, 0x1B); // 0x1B 是 ESC 键的虚拟键代码
-                    log.info("任务已结束");
-                    return true;
+            executionTime += checkInterval;
+            // 是否已对话弹窗 （完成之前点击对话会出现，完成后也会出现）
+            Point endPoint = OpencvUtils.findImageXY(CaptureUtils.captureWindow(hwnd), commonImgList.get("popUpIconPath"), 0.8, null);
+            if (ObjectUtil.isNotEmpty(endPoint)) {
+                // 是否战斗场景,是否还在战斗过程中
+                if(isFight){
+                    // 识别到时战斗场景，则还在战斗过程中
+                    Point zhandouIngPoint = OpencvUtils.findImageXY(CaptureUtils.captureWindow(hwnd), commonImgList.get("zhandouchangdiPath"), 0.8, null);
+                    if (ObjectUtil.isEmpty(zhandouIngPoint)) {
+                        WindowsUtils.sendKeyEvent(hwnd, 0x1B); // 0x1B 是 ESC 键的虚拟键代码
+                        log.info("任务已结束");
+                        return true;
+                    }
+                    continue;
                 }
+                WindowsUtils.sendKeyEvent(hwnd, 0x1B);
+                return true;
             }
-            log.info("任务进行中，已等待时间：" + (elapsedTime / 1000) + "秒");
+            log.info("任务进行中，已等待时间：" + (executionTime / 1000) + "秒");
         }
-        log.info("任务超时，默认结束");
-        return false;
+
+        log.info("任务超时: 停止");
+        throw new BusinessException("任务超时");
     }
 }

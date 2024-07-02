@@ -68,6 +68,48 @@ public class OpencvUtils {
 
 
 
+    /**
+     * 在指定矩形区域内查找指定颜色的像素坐标
+     * @param screenImgPath 原始屏幕图片路径
+     * @param startX 矩形区域左上角 x 坐标
+     * @param startY 矩形区域左上角 y 坐标
+     * @param width 矩形区域宽度
+     * @param height 矩形区域高度
+     * @param color 指定的颜色，以Scalar形式表示（BGR格式）
+     * @return 找到的第一个匹配颜色的像素绝对坐标，未找到返回null
+     */
+    public static Point findColorCoordinate(String screenImgPath, int startX, int startY, int width, int height, Scalar color) {
+        Mat screen = Imgcodecs.imread(screenImgPath);
+        if (screen.empty()) {
+            System.err.println("无法读取屏幕截图：" + screenImgPath);
+            return null;
+        }
+
+        // 确保矩形区域不超出屏幕边界
+        int endX = Math.min(startX + width, screen.cols());
+        int endY = Math.min(startY + height, screen.rows());
+
+        // 提取矩形区域
+        Mat roi = new Mat(screen, new Rect(startX, startY, endX - startX, endY - startY));
+
+        // 创建掩模并在掩模上执行颜色匹配
+        Mat mask = new Mat();
+        Core.inRange(roi, color, color, mask);
+
+        // 查找第一个匹配颜色的像素坐标
+        for (int y = 0; y < mask.rows(); y++) {
+            for (int x = 0; x < mask.cols(); x++) {
+                if (mask.get(y, x)[0] == 255) { // 找到匹配的颜色像素
+                    return new Point(startX + x, startY + y); // 返回绝对坐标
+                }
+            }
+        }
+
+        return null; // 未找到匹配的颜色像素
+    }
+
+
+
 
     /**
      * 多图匹配，返回多个坐标
