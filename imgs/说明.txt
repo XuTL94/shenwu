@@ -1,0 +1,4 @@
+agendaBar：日程状态栏
+common：公共
+giveWuzi：物资给予
+sm：师门任务

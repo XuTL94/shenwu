@@ -2,8 +2,7 @@ package com.game.test;
 
 import cn.hutool.core.util.ObjectUtil;
 import com.game.play.utils.CaptureUtils;
-import com.game.play.utils.OpencvUtils;
-import com.game.play.utils.ShenwuUtils;
+import com.game.play.utils.OpencvUtils2;
 import com.game.play.utils.WindowsUtils;
 import com.sun.jna.platform.win32.User32;
 import com.sun.jna.platform.win32.WinDef;
@@ -15,7 +14,6 @@ import org.opencv.core.Scalar;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
@@ -38,7 +36,7 @@ public class ShimenTest {
 
 
         String templateImgPath = "E:\\code\\yunpu\\shenwu\\temp\\biaoji\\smFinish.png";
-        Point initialPoint = OpencvUtils.findImgXY(screenImgPath, templateImgPath, 0.8, null);
+        Point initialPoint = OpencvUtils2.findImgXY(screenImgPath, templateImgPath, 0.8, null);
 
         if (initialPoint == null) {
             log.error("师门任务未完成");
@@ -47,7 +45,7 @@ public class ShimenTest {
 
         log.info("师门任务完成  初始匹配点：{}", initialPoint);
 
-        Point colorPoint = OpencvUtils.findColorCoordinate(screenImgPath, (int) initialPoint.x, (int) (initialPoint.y + 5), 150, 15, new Scalar(254, 254, 0));
+        Point colorPoint = OpencvUtils2.findColorCoordinate(screenImgPath, (int) initialPoint.x, (int) (initialPoint.y + 5), 150, 15, new Scalar(254, 254, 0));
 
         // 寻找寻路以及点击
         if (colorPoint != null) {
@@ -73,13 +71,13 @@ public class ShimenTest {
 
             // 判断是否出现物质提交
             String commitFlagImgPath = "E:\\code\\yunpu\\shenwu\\temp\\biaoji\\commitCollectionIcon1.png";
-            Point allImgXY = OpencvUtils.findImgXY(CaptureUtils.captureWindow(hwnd), templateImgPath, 0.8,null);
+            Point allImgXY = OpencvUtils2.findImgXY(CaptureUtils.captureWindow(hwnd), templateImgPath, 0.8,null);
 
             if(ObjectUtil.isNotEmpty(allImgXY)){
                 List<String> strings = List.of("E:\\code\\yunpu\\shenwu\\temp\\biaoji\\zhenlujiu.png", "E:\\code\\yunpu\\shenwu\\temp\\biaoji\\babaozhou.png",
                         "E:\\code\\yunpu\\shenwu\\temp\\biaoji\\taxueyanwo.png","E:\\code\\yunpu\\shenwu\\temp\\biaoji\\shedanjiu.png"
                         ,"E:\\code\\yunpu\\shenwu\\temp\\biaoji\\zuishengmengsi.png","E:\\code\\yunpu\\shenwu\\temp\\biaoji\\guihunlu.png");
-                List<Point> aaallImgXY = OpencvUtils.findAllOneImgsXY(CaptureUtils.captureWindow(hwnd), strings, 0.80);
+                List<Point> aaallImgXY = OpencvUtils2.findAllOneImgsXY(CaptureUtils.captureWindow(hwnd), strings, 0.80);
                 if (aaallImgXY != null) {
                     for (Point point : aaallImgXY) {
                         TimeUnit.MILLISECONDS.sleep(500);
@@ -112,7 +110,7 @@ public class ShimenTest {
 
 
         String templateImgPath = "E:\\code\\yunpu\\shenwu\\temp\\biaoji\\toDoSMCollection.png";
-        Point initialPoint = OpencvUtils.findImgXY(screenImgPath, templateImgPath, 0.8, null);
+        Point initialPoint = OpencvUtils2.findImgXY(screenImgPath, templateImgPath, 0.8, null);
 
         if (initialPoint == null) {
             log.error("师门任务未找到");
@@ -153,7 +151,7 @@ public class ShimenTest {
 
 
         String templateImgPath = "E:\\code\\yunpu\\shenwu\\temp\\biaoji\\toDoSMchongwu.png";
-        Point initialPoint = OpencvUtils.findImgXY(screenImgPath, templateImgPath, 0.8, null);
+        Point initialPoint = OpencvUtils2.findImgXY(screenImgPath, templateImgPath, 0.8, null);
 
         if (initialPoint == null) {
             log.error("师门任务未找到");
@@ -183,7 +181,7 @@ public class ShimenTest {
 
 
         String templateImgPath = "E:\\code\\yunpu\\shenwu\\temp\\biaoji\\toDoSMLingxu.png";
-        Point initialPoint = OpencvUtils.findImgXY(screenImgPath, templateImgPath, 0.8, null);
+        Point initialPoint = OpencvUtils2.findImgXY(screenImgPath, templateImgPath, 0.8, null);
 
         if (initialPoint == null) {
             log.error("师门任务未找到");
@@ -208,7 +206,7 @@ public class ShimenTest {
 
 
         String templateImgPath = "E:\\code\\yunpu\\shenwu\\temp\\biaoji\\shouxiIcon.png";
-        Point initialPoint = OpencvUtils.findImgXY(screenImgPath, templateImgPath, 0.8, null);
+        Point initialPoint = OpencvUtils2.findImgXY(screenImgPath, templateImgPath, 0.8, null);
 
         if (initialPoint == null) {
             log.error("师门任务未找到");
@@ -225,7 +223,7 @@ public class ShimenTest {
         long maxDuration = 5 * 60 * 1000; // 5分钟
 
         while (System.currentTimeMillis() - startTime < maxDuration) {
-            Point finishPoint = OpencvUtils.findImgXY(CaptureUtils.captureWindow(hwnd), guanbiPath, 0.8, null);
+            Point finishPoint = OpencvUtils2.findImgXY(CaptureUtils.captureWindow(hwnd), guanbiPath, 0.8, null);
             if (finishPoint != null) {
                 isFinished = true;
                 break;
@@ -250,7 +248,7 @@ public class ShimenTest {
         // Simulate pressing the Escape key
         /*User32.INSTANCE.PostMessage(hwnd, WinUser.WM_KEYDOWN, new WinDef.WPARAM(0x1B), new WinDef.LPARAM(0)); // VK_ESCAPE = 0x1B
         User32.INSTANCE.PostMessage(hwnd, WinUser.WM_KEYUP, new WinDef.WPARAM(0x1B), new WinDef.LPARAM(0));   // VK_ESCAPE = 0x1B*/
-        CaptureUtils.captureWindow(hwnd);
+        CaptureUtils.captureWindow(hwnd,false);
     }
 
     @Test
@@ -292,7 +290,7 @@ public class ShimenTest {
         }
 
         String templateImgPath = "E:\\code\\yunpu\\shenwu\\temp\\biaoji\\sm-finish.png";
-        Point initialPoint = OpencvUtils.findImgXY(screenImgPath, templateImgPath, 0.8, null);
+        Point initialPoint = OpencvUtils2.findImgXY(screenImgPath, templateImgPath, 0.8, null);
 
         if (initialPoint == null) {
             log.error("未找到初始匹配点");
@@ -301,7 +299,7 @@ public class ShimenTest {
 
         log.info("初始匹配点：{}", initialPoint);
 
-        Point colorPoint = OpencvUtils.findColorCoordinate(screenImgPath, (int) initialPoint.x, (int) (initialPoint.y + 5), 150, 10, new Scalar(254, 254, 0));
+        Point colorPoint = OpencvUtils2.findColorCoordinate(screenImgPath, (int) initialPoint.x, (int) (initialPoint.y + 5), 150, 10, new Scalar(254, 254, 0));
 
         if (colorPoint != null) {
             log.info("在屏幕截图 {} 内找到指定颜色的像素绝对坐标：{}", screenImgPath, colorPoint);

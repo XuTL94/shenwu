@@ -1,7 +1,5 @@
 package com.game.test;
 
-import com.game.play.utils.CaptureUtils;
-import com.game.play.utils.WindowsUtils;
 import com.sun.jna.Memory;
 import com.sun.jna.Native;
 import com.sun.jna.platform.win32.*;

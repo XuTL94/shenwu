@@ -1,16 +1,9 @@
 package com.game.play.service.shimen;
 
-import com.game.play.enums.WindowsMessage;
 import com.game.play.utils.CaptureUtils;
-import com.game.play.utils.OpencvUtils;
 import com.game.play.utils.WindowsUtils;
-import com.sun.jna.Native;
-import com.sun.jna.platform.win32.User32;
 import com.sun.jna.platform.win32.WinDef;
-import com.sun.jna.platform.win32.WinUser;
-import com.sun.jna.win32.StdCallLibrary;
 import lombok.extern.slf4j.Slf4j;
-import org.opencv.core.Point;
 import org.springframework.stereotype.Service;
 
 import java.util.List;

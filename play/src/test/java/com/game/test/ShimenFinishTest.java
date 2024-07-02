@@ -1,9 +1,8 @@
 package com.game.test;
 
 import cn.hutool.core.util.ObjectUtil;
-import com.game.play.enums.WindowsMessage;
 import com.game.play.utils.CaptureUtils;
-import com.game.play.utils.OpencvUtils;
+import com.game.play.utils.OpencvUtils2;
 import com.game.play.utils.ShenwuUtils;
 import com.game.play.utils.WindowsUtils;
 import com.sun.jna.platform.win32.WinDef;
@@ -90,7 +89,7 @@ public class ShimenFinishTest {
         }
 
         // 判断是否已接收师门任务
-        while (ObjectUtil.isNotEmpty(OpencvUtils.findAllOneImgsXY(CaptureUtils.captureWindow(hwnd), smTypeIconList, 0.8))) {
+        while (ObjectUtil.isNotEmpty(OpencvUtils2.findAllOneImgsXY(CaptureUtils.captureWindow(hwnd), smTypeIconList, 0.8))) {
             log.info("师门任务进行中...");
             boolean finishOneFlag = false;
             // 先判断是否是物质收集
@@ -121,7 +120,7 @@ public class ShimenFinishTest {
     static boolean ToDoSMCollectionTest(WinDef.HWND hwnd) {
 
 
-        Point point = OpencvUtils.findImgXY(CaptureUtils.captureWindow(hwnd), toDoSMCollectionPath, 0.8, null);
+        Point point = OpencvUtils2.findImgXY(CaptureUtils.captureWindow(hwnd), toDoSMCollectionPath, 0.8, null);
 
         if (point == null) {
             log.info("未找到师门任务：收集物质");
@@ -133,10 +132,10 @@ public class ShimenFinishTest {
 
         while (finishFlag){
             // 判断是否已完成
-            Point smFinishPoint = OpencvUtils.findImgXY(CaptureUtils.captureWindow(hwnd), smFinishReplyIconPath, 0.8, null);
+            Point smFinishPoint = OpencvUtils2.findImgXY(CaptureUtils.captureWindow(hwnd), smFinishReplyIconPath, 0.8, null);
             if (ObjectUtil.isNotEmpty(smFinishPoint)) {
                 // 获取师门回复寻路坐标
-                Point replyPoint = OpencvUtils.findColorCoordinate(CaptureUtils.captureWindow(hwnd), (int) smFinishPoint.x, (int) (smFinishPoint.y + 5), 150, 15, new Scalar(254, 254, 0));
+                Point replyPoint = OpencvUtils2.findColorCoordinate(CaptureUtils.captureWindow(hwnd), (int) smFinishPoint.x, (int) (smFinishPoint.y + 5), 150, 15, new Scalar(254, 254, 0));
                 // 寻找寻路以及点击
                 if (ObjectUtil.isNotEmpty(replyPoint)) {
 
@@ -156,30 +155,30 @@ public class ShimenFinishTest {
 
                             // 是否需要手动提交物质
 
-                            Point commitTaskIconPoint = OpencvUtils.findImgXY(CaptureUtils.captureWindow(hwnd), commitTaskIconPath, 0.8, null);
+                            Point commitTaskIconPoint = OpencvUtils2.findImgXY(CaptureUtils.captureWindow(hwnd), commitTaskIconPath, 0.8, null);
                             if(ObjectUtil.isNotEmpty(commitTaskIconPoint)){
                                 log.info("提交任务坐标，{} {}",commitTaskIconPoint.x,commitTaskIconPoint.y);
                                 WindowsUtils.sendMouseClick(hwnd, (int) commitTaskIconPoint.x, (int) commitTaskIconPoint.y, 1);
 
                                 // 是否需要再次确认收到提交
-                                Point commitCollectSMPoint = OpencvUtils.findImgXY(CaptureUtils.captureWindow(hwnd), commitCollectSMPath, 0.8, null);
+                                Point commitCollectSMPoint = OpencvUtils2.findImgXY(CaptureUtils.captureWindow(hwnd), commitCollectSMPath, 0.8, null);
                                 if(ObjectUtil.isNotEmpty(commitCollectSMPoint)){
                                     WindowsUtils.sendMouseClick(hwnd, (int) commitCollectSMPoint.x, (int) commitCollectSMPoint.y, 1);
                                 }
 
-                                Point givePopUpsPoint = OpencvUtils.findImgXY(CaptureUtils.captureWindow(hwnd), givePopUpsIconPath, 0.8, null);
+                                Point givePopUpsPoint = OpencvUtils2.findImgXY(CaptureUtils.captureWindow(hwnd), givePopUpsIconPath, 0.8, null);
                                 if (ObjectUtil.isNotEmpty(givePopUpsPoint)) {
-                                    List<Point> collectionPoints = OpencvUtils.findAllOneImgsXY(CaptureUtils.captureWindow(hwnd), giveCollectionList, 0.8);
+                                    List<Point> collectionPoints = OpencvUtils2.findAllOneImgsXY(CaptureUtils.captureWindow(hwnd), giveCollectionList, 0.8);
                                     if (collectionPoints != null) {
                                         for (Point p : collectionPoints) {
                                             WindowsUtils.sendMouseClick(hwnd, (int) p.x, (int) (p.y), 1);
                                         }
                                     }
-                                    Point quedingIconPoint = OpencvUtils.findImgXY(CaptureUtils.captureWindow(hwnd), quedingIconPath, 0.8, null);
+                                    Point quedingIconPoint = OpencvUtils2.findImgXY(CaptureUtils.captureWindow(hwnd), quedingIconPath, 0.8, null);
                                     // 点击确定提交物质
                                     WindowsUtils.sendMouseClick(hwnd, (int) quedingIconPoint.x, (int) quedingIconPoint.y, 1);
 
-                                    Point endPoint = OpencvUtils.findImgXY(CaptureUtils.captureWindow(hwnd), popUpIconPath, 0.8, null);
+                                    Point endPoint = OpencvUtils2.findImgXY(CaptureUtils.captureWindow(hwnd), popUpIconPath, 0.8, null);
                                     if (endPoint != null) {
                                         WindowsUtils.sendMouseClick(hwnd, (int) endPoint.x, (int) (endPoint.y), 1);
                                         isBattleEnded = true;
@@ -190,7 +189,7 @@ public class ShimenFinishTest {
                                     break;
                                 }
                             }else{
-                                Point endPoint = OpencvUtils.findImgXY(CaptureUtils.captureWindow(hwnd), popUpIconPath, 0.8, null);
+                                Point endPoint = OpencvUtils2.findImgXY(CaptureUtils.captureWindow(hwnd), popUpIconPath, 0.8, null);
                                 if (endPoint != null) {
                                     WindowsUtils.sendMouseClick(hwnd, (int) endPoint.x, (int) (endPoint.y), 1);
                                     isBattleEnded = true;
@@ -231,7 +230,7 @@ public class ShimenFinishTest {
     // 师门类型  宠物购买
     static boolean ToDoSMChongwu(WinDef.HWND hwnd) throws InterruptedException {
 
-        Point point = OpencvUtils.findImgXY(CaptureUtils.captureWindow(hwnd), toDoSMchongwuPath, 0.8, null);
+        Point point = OpencvUtils2.findImgXY(CaptureUtils.captureWindow(hwnd), toDoSMchongwuPath, 0.8, null);
 
         if (point == null) {
             log.info("未找到师门任务：宠物购买");
@@ -250,10 +249,10 @@ public class ShimenFinishTest {
         WindowsUtils.sendKeyEvent(hwnd, 0x1B); // 0x1B 是 ESC 键的虚拟键代码
 
         // 回归师门
-        Point smFinishPoint = OpencvUtils.findImgXY(CaptureUtils.captureWindow(hwnd), smFinishReplyIconPath, 0.8, null);
+        Point smFinishPoint = OpencvUtils2.findImgXY(CaptureUtils.captureWindow(hwnd), smFinishReplyIconPath, 0.8, null);
         if (ObjectUtil.isNotEmpty(smFinishPoint)) {
             // 获取师门回复寻路坐标
-            Point replyPoint = OpencvUtils.findColorCoordinate(CaptureUtils.captureWindow(hwnd), (int) smFinishPoint.x, (int) (smFinishPoint.y + 5), 150, 15, new Scalar(254, 254, 0));
+            Point replyPoint = OpencvUtils2.findColorCoordinate(CaptureUtils.captureWindow(hwnd), (int) smFinishPoint.x, (int) (smFinishPoint.y + 5), 150, 15, new Scalar(254, 254, 0));
             // 寻找寻路以及点击
             if (replyPoint != null) {
 
@@ -267,7 +266,7 @@ public class ShimenFinishTest {
                 while (elapsedTime < timeout) {
                     TimeUnit.MILLISECONDS.sleep(checkInterval);
                     elapsedTime += checkInterval;
-                    Point endPoint = OpencvUtils.findImgXY(CaptureUtils.captureWindow(hwnd), popUpIconPath, 0.8, null);
+                    Point endPoint = OpencvUtils2.findImgXY(CaptureUtils.captureWindow(hwnd), popUpIconPath, 0.8, null);
                     if (endPoint != null) {
                         WindowsUtils.sendMouseClick(hwnd, (int) endPoint.x, (int) (endPoint.y), 1);
                         isBattleEnded = true;
@@ -287,7 +286,7 @@ public class ShimenFinishTest {
 
     // 师门类型  灵虚裂痕
     static boolean ToDoSMLingxu(WinDef.HWND hwnd) throws InterruptedException {
-        Point point = OpencvUtils.findImgXY(CaptureUtils.captureWindow(hwnd), toDoSMLingxuPath, 0.8, null);
+        Point point = OpencvUtils2.findImgXY(CaptureUtils.captureWindow(hwnd), toDoSMLingxuPath, 0.8, null);
 
         if (point == null) {
             log.info("未找到师门任务：灵虚裂痕");
@@ -309,11 +308,11 @@ public class ShimenFinishTest {
 
             TimeUnit.MILLISECONDS.sleep(checkInterval);
             elapsedTime += checkInterval;
-            Point endPoint = OpencvUtils.findImgXY(CaptureUtils.captureWindow(hwnd), popUpIconPath, 0.8, null);
+            Point endPoint = OpencvUtils2.findImgXY(CaptureUtils.captureWindow(hwnd), popUpIconPath, 0.8, null);
             if (endPoint != null) {
 
                 // 是否在战斗中
-                Point zhandouIngPoint = OpencvUtils.findImgXY(CaptureUtils.captureWindow(hwnd), zhandouchangdiPath, 0.8, null);
+                Point zhandouIngPoint = OpencvUtils2.findImgXY(CaptureUtils.captureWindow(hwnd), zhandouchangdiPath, 0.8, null);
                 if (zhandouIngPoint != null) {
                     continue;
                 }
@@ -336,7 +335,7 @@ public class ShimenFinishTest {
     // 师门类型  挑战首席
     static boolean ToDoSMShouxi(WinDef.HWND hwnd) throws InterruptedException {
         String screenImg = CaptureUtils.captureWindow(hwnd);
-        Point point = OpencvUtils.findImgXY(screenImg, toDoSMShouxiPath, 0.8, null);
+        Point point = OpencvUtils2.findImgXY(screenImg, toDoSMShouxiPath, 0.8, null);
 
         if (point == null) {
             log.info("未找到师门任务：挑战首席");
@@ -358,11 +357,11 @@ public class ShimenFinishTest {
 
             TimeUnit.MILLISECONDS.sleep(checkInterval);
             elapsedTime += checkInterval;
-            Point endPoint = OpencvUtils.findImgXY(CaptureUtils.captureWindow(hwnd), popUpIconPath, 0.8, null);
+            Point endPoint = OpencvUtils2.findImgXY(CaptureUtils.captureWindow(hwnd), popUpIconPath, 0.8, null);
             if (endPoint != null) {
 
                 // 是否在战斗中
-                Point zhandouIngPoint = OpencvUtils.findImgXY(CaptureUtils.captureWindow(hwnd), zhandouchangdiPath, 0.8, null);
+                Point zhandouIngPoint = OpencvUtils2.findImgXY(CaptureUtils.captureWindow(hwnd), zhandouchangdiPath, 0.8, null);
                 if (zhandouIngPoint != null) {
                     continue;
                 }
@@ -385,7 +384,7 @@ public class ShimenFinishTest {
     // 师门类型  援助同门
     static boolean ToDoSMYuanzu(WinDef.HWND hwnd) throws InterruptedException {
         String screenImg = CaptureUtils.captureWindow(hwnd);
-        Point point = OpencvUtils.findImgXY(screenImg, toDoSMYuanzuPath, 0.8, null);
+        Point point = OpencvUtils2.findImgXY(screenImg, toDoSMYuanzuPath, 0.8, null);
 
         if (point == null) {
             log.info("未找到师门任务：援助同门");
@@ -406,11 +405,11 @@ public class ShimenFinishTest {
         while (elapsedTime < timeout) {
             TimeUnit.MILLISECONDS.sleep(checkInterval);
             elapsedTime += checkInterval;
-            Point endPoint = OpencvUtils.findImgXY(CaptureUtils.captureWindow(hwnd), popUpIconPath, 0.8, null);
+            Point endPoint = OpencvUtils2.findImgXY(CaptureUtils.captureWindow(hwnd), popUpIconPath, 0.8, null);
             if (endPoint != null) {
 
                 // 是否在战斗中
-                Point zhandouIngPoint = OpencvUtils.findImgXY(CaptureUtils.captureWindow(hwnd), zhandouchangdiPath, 0.8, null);
+                Point zhandouIngPoint = OpencvUtils2.findImgXY(CaptureUtils.captureWindow(hwnd), zhandouchangdiPath, 0.8, null);
                 if (zhandouIngPoint != null) {
                     continue;
                 }
