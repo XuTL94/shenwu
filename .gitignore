@@ -14,7 +14,8 @@ build/
 *.iml
 *.ipr
 out/
-temp/
+#temp/
+play/temp
 main.log
 !**/src/main/**/out/
 !**/src/test/**/out/
