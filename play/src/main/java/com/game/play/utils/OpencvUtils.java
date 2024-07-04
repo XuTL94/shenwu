@@ -15,6 +15,11 @@ public class OpencvUtils {
      * 单图匹配
      */
     public static Point findImageXY(String screenImgPath, String targetImgPath, double threshold, Rect region) {
+        try {
+            findImageXY(screenImgPath, List.of(targetImgPath), threshold, region);
+        }catch (Exception e){
+            log.error("报错：{}",targetImgPath,e);
+        }
         return findImageXY(screenImgPath, List.of(targetImgPath), threshold, region);
     }
 
@@ -47,21 +52,26 @@ public class OpencvUtils {
         // 指定区域, region 不传，则根据 screen 进行规划区域
         Rect adjustedRegion = (region != null) ? adjustRegion(screen, region) : new Rect(0, 0, screen.width(), screen.height());
         Mat screenRegion = new Mat(screen, adjustedRegion);
+        try {
+            for (String targetImgPath : targetImgPaths) {
+                Mat target = Imgcodecs.imread(targetImgPath);
 
-        for (String targetImgPath : targetImgPaths) {
-            Mat target = Imgcodecs.imread(targetImgPath);
+                Mat result = new Mat(screenRegion.rows() - target.rows() + 1, screenRegion.cols() - target.cols() + 1, CvType.CV_32FC1);
+                Imgproc.matchTemplate(screenRegion, target, result, Imgproc.TM_CCOEFF_NORMED);
 
-            Mat result = new Mat(screenRegion.rows() - target.rows() + 1, screenRegion.cols() - target.cols() + 1, CvType.CV_32FC1);
-            Imgproc.matchTemplate(screenRegion, target, result, Imgproc.TM_CCOEFF_NORMED);
-
-            Core.MinMaxLocResult mmr = Core.minMaxLoc(result);
-            if (mmr.maxVal >= threshold) {
-                // 计算目标中间XY
-                Point matchPoint = new Point(mmr.maxLoc.x + (double) target.width() / 2, mmr.maxLoc.y + (double) target.height() / 2);
-                // 补充区域计算
-                return new Point(matchPoint.x + adjustedRegion.x, matchPoint.y + adjustedRegion.y);
+                Core.MinMaxLocResult mmr = Core.minMaxLoc(result);
+                //log.info("匹配度{}",String.valueOf(mmr.maxVal));
+                if (mmr.maxVal >= threshold) {
+                    // 计算目标中间XY
+                    Point matchPoint = new Point(mmr.maxLoc.x + (double) target.width() / 2, mmr.maxLoc.y + (double) target.height() / 2);
+                    // 补充区域计算
+                    return new Point(matchPoint.x + adjustedRegion.x, matchPoint.y + adjustedRegion.y);
+                }
             }
+        }catch (Exception e){
+            log.error("未找到图片{}",targetImgPaths,e);
         }
+
 
         return null;
     }
